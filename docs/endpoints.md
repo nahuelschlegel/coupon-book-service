@@ -182,6 +182,8 @@ Uses Redis `SET coupon-lockForRedemption-{couponAssigmentId} NX EX 120`, this cr
 
 This kind of locking process prevents race conditions and ensure data integrity, and is faster than SQL row level locking.
 
+[Code Locking Pseudocode](./codeLocking.md)
+
 #### Required fields:
 - `code`
 - `user_id`
@@ -243,6 +245,8 @@ The SELECT ... FOR UPDATE, locks the row affected by the query until the transac
 If every check goes well, updates the CouponsAssignment and creates a new registry in the CouponRedemptions.
 
 This kind of locking process prevents race conditions and ensure data integrity.
+
+[Code Redeeming Pseudocode](./codeRedeeming.md)
 
 #### Required fields:
 - `code`

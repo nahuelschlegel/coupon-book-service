@@ -19,6 +19,12 @@ OpenAPI documentation:
 
 For more detailed information, click [here](./docs/endpoints.md).
 
+Key operations:
+- [Generation Logic Pseudocode](./docs/generationLogic.md)
+- [Random code assignment Pseudocode](./docs/randomCodeAssignment.md)
+- [Code Locking Pseudocode](./docs/codeLocking.md)
+- [Code Redeeming Pseudocode](./docs/codeRedeeming.md)
+
 
 ## Deployment Strategy
 

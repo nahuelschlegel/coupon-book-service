@@ -1,0 +1,427 @@
+openapi: 3.1.0
+info:
+  title: Swagger Coupon Book - OpenAPI 3.1
+  description: This is a sample Coupon Book Server based on the OpenAPI 3.1
+    specification.  You can find out more about Swagger at
+    [https://swagger.io](https://swagger.io).
+  version: 0.0.1
+tags:
+  - name: Coupon Book
+  - name: Coupon
+paths:
+  /coupons:
+    post:
+      tags:
+        - Coupon Book
+      summary: Create a new coupon book
+      requestBody:
+        description: Create a new coupon book
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - title
+              type: object
+              properties:
+                title:
+                  type: string
+                  examples:
+                    - Premium
+                description:
+                  type: string
+                  examples:
+                    - Coupon book description
+                max_per_user:
+                  type: integer
+                  examples:
+                    - 10
+                allow_multiple_redemptions:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Operation accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponBook'
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error.
+      security:
+        - bearerAuthAdmin: []
+  /coupons/codes:
+    post:
+      tags:
+        - Coupon
+      summary: Add codes to a coupon book via text file or auto-generated codes
+      description: Upload a code list to an existing Coupon Book with a list of codes separated by comma
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coupon_book_id:
+                  type: integer
+                  description: The coupon book ID to which the codes have to be associated.
+                  examples: [1]
+                code_pattern:
+                  type: string
+                  description: String code where each '#' represents a digit and each '?' represents an uppercase letter.
+                  examples: ["CODE-####-????"]
+                quantity:
+                  type: integer
+                  description: The amount of codes to be auto-generated.
+                  examples: [15]
+                codes:
+                  type: array
+                  description: The list of codes to be created.
+                  items:
+                    type: string
+                    examples: [ "CODE10017", "25OFF", "HOTSALE15", "HOTSALE100USD" ]
+
+      responses:
+        '202':
+          description: Request accepted
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuthAdmin: []
+  /coupons/assign:
+    post:
+      tags:
+        - Coupon
+      summary: Assign a new random coupon code to a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  description: User ID to whom the code is assigned.
+                  examples: [15]
+                coupon_book_id:
+                  type: integer
+                  description: Coupon Book ID to which the code should belong.
+                  examples: [2]
+      responses:
+        '200':
+          description: Random coupon assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponAssignment'
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error.
+  /coupons/assign/{code}:
+    post:
+      tags:
+        - Coupon
+      summary: Assign a given coupon code to a user
+      parameters:
+        - name: code
+          in: path
+          description: ID of the code.
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  description: User ID to whom the code is assigned.
+                  examples: [15]
+      responses:
+        '200':
+          description: Coupon assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponAssignment'
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error.
+  /coupons/lock/{code}:
+    post:
+      tags:
+        - Coupon
+      summary: Lock a coupon for redemption
+      description: Code should have been previously assigned to a user. This is a temporary lock operation, but not a definitive redeem
+      parameters:
+        - name: code
+          in: path
+          description: ID of the code.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Coupon temporarily locked, you have 2 minutes to finish redemption.
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict. The coupon is already locked.
+        '422':
+          description: Validation error.
+  /coupons/unlock/{code}:
+    post:
+      tags:
+        - Coupon
+      summary: Unlock a coupon after a temporary lock
+      description: Code should have been previously assigned to a user.
+      parameters:
+        - name: code
+          in: path
+          description: ID of the code.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Coupon unlocked.
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error.
+  /coupons/redeem/{code}:
+    post:
+      tags:
+        - Coupon
+      summary: Redeem a coupon
+      description: Code should have been previously assigned to a user. This is a permanent lock operation
+      parameters:
+        - name: code
+          in: path
+          description: ID of the code.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Coupon redeemed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponRedemption'
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error.
+  /coupons/user/{id}:
+    get:
+      tags:
+        - Coupon
+      summary: Get the user's assigned coupon codes
+      parameters:
+        - name: id
+          in: path
+          description: User ID.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of coupons.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CouponAssignment'
+        '400':
+          description: Invalid input.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error.
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: User ID.
+          examples:
+            - 10
+        email:
+          type: string
+          examples:
+            - john@doe.com
+        first_name:
+          type: string
+          examples:
+            - John
+        last_name:
+          type: string
+          examples:
+            - James
+        phone:
+          type: string
+          examples: ['1234567890']
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CouponBook:
+      required:
+        - title
+      type: object
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        title:
+          type: string
+          examples:
+            - Premium
+        description:
+          type: string
+          examples:
+            - Coupon book description
+        max_per_user:
+          type: integer
+          default: 99999
+          examples:
+            - 10
+        allow_multiple_redemptions:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Coupon:
+      required:
+        - coupon_book_id
+        - code
+      type: object
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        coupon_book_id:
+          type: integer
+          examples:
+            - 1
+        code:
+          type: string
+          examples:
+            - TENOFF4YOU
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CouponAssignment:
+      required:
+        - coupon_id
+        - user_id
+      type: object
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        coupon_id:
+          type: integer
+          examples:
+            - 2
+        user_id:
+          type: integer
+          examples:
+            - 3
+        redemption_count:
+          type: integer
+          default: 0
+          examples:
+            - 0
+        max_redemptions:
+          type: integer
+          default: 1
+          examples:
+            - 1
+        last_redeemed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CouponRedemption:
+      required:
+        - code
+      type: object
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        coupon_assignment_id:
+          type: integer
+          examples:
+            - 1
+        status:
+          type: string
+          enum:
+            - successful
+            - failed
+        created_at:
+          type: string
+          format: date-time
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    bearerAuthAdmin:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
+
+security:
+  - bearerAuth: []
